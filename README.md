@@ -1,1 +1,1 @@
-# Streaming-Heterooscedastic-PPCA
+# Streaming-Heteroscedastic-PPCA
