@@ -1,4 +1,4 @@
-function HPPCACompletion(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,niters::Int64,Fmeasure::Function,stats_fcn::Function,buffer=1)
+function batchHPPCACompletion(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,niters::Int64,Fmeasure::Function,stats_fcn::Function,buffer=1)
 
 
 	stats_log = []

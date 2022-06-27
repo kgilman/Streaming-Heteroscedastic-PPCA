@@ -1,30 +1,5 @@
-# function OnlineHPPCA(M,Y,ΩY,groups,λ,δ)
-#     d,k = size(M.F)
-#     n = size(Y)[2]
-#     Rₜ⁺ = [δ*Matrix(I(k)) for i=1:d]
-#     Yrec = deepcopy(Y)
-#     data_idx = randperm(n)
-#     stats_log = [stats_fcn(M)]
-#     err_log = [Fmeasure(M)]
-#     time_log = []
-#     for t = 1:n
-# #         j = data_idx[t]
 
-#         yₜ = Y[:,t]
-#         l = groups[t]
-#         Ωₜ = ΩY[:,t]
-#         telapsed = @elapsed begin
-#         yₜʳ = streamHPPCA!(M,yₜ,l,Ωₜ,Rₜ⁺,λ)
-#         end
-#         Yrec[:,t] = yₜʳ
-#         push!(stats_log,stats_fcn(M))
-#         push!(err_log, Fmeasure(M))
-#         push!(time_log,telapsed)
-#     end
-#     return M, Yrec, stats_log, err_log, time_log
-# end
-
-function PETRELS(M,Y,ΩY,λ,δ)
+function PETRELS(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,λ::Float64,δ::Float64)
     d,k = size(M.F)
     n = size(Y)[2]
     Rₜ⁺ = [δ*Matrix(I(k)) for i=1:d]
@@ -48,7 +23,7 @@ function PETRELS(M,Y,ΩY,λ,δ)
     return M, Yrec, stats_log, err_log, time_log
 end
 
-function streamPETRELS!(M,yₜ,Ωₜ,Rₜ⁺,λ)
+function streamPETRELS!(M::HePPCATModel,yₜ::Vector{Float64},Ωₜ::AbstractVector,Rₜ⁺::Vector{Matrix{Float64}},λ::Float64)
     Ωₜidx = findall(>(0), Ωₜ)
     F = copy(M.F)
     FΩₜ = F[Ωₜidx,:]
