@@ -1,4 +1,4 @@
-function GROUSE(M,Y,Yidx,step,stat_fxn,err_fxn)
+function GROUSE(M::HePPCATModel,Y::Matrix{Float64},Yidx::AbstractMatrix,step::Float64,stat_fxn::Function,err_fxn::Function)
 
     stats = [stat_fxn(M)]
     errs = [err_fxn(M)]
@@ -20,7 +20,7 @@ end
 
 
 
-function streamGROUSE!(M, v, xIdx, step)
+function streamGROUSE!(M::HePPCATModel, v::Vector{Float64}, xIdx::AbstractVector, step::Float64)
 
         ### Main GROUSE update
         U = M.U
