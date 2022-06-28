@@ -1,4 +1,22 @@
-function plottraces(stats,labels,colors,markers,interval,alpha,figsize,fontsize,title::String,xlabel::String,legend=:outerright,yaxis=:linear)
+function plottraces(stats,labels,colors,markers,interval::Int64,alpha,figsize,fontsize,title::String,xlabel::String,legend=:outerright,yaxis=:linear)
+  
+    p = plot(size=figsize,legend=legend,title=title,xlabel=xlabel,yaxis=yaxis,
+        xtickfont=font(fontsize), 
+        ytickfont=font(fontsize), 
+        guidefont=font(fontsize), 
+        legendfont=font(fontsize),
+        titlefont=font(fontsize))
+    for (stat,label) in zip(stats,labels)
+        plot!(p,[trace for trace in stat],alpha=alpha,color=colors[label],label="")
+        # plot!(p,1:interval[label]:length(mean(stat)),mean(stat)[1:interval[label]:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
+        plot!(p,1:interval:length(mean(stat)),mean(stat)[1:interval:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
+    end
+    
+    return p
+end
+
+
+function plottraces(stats,labels,colors,markers,interval::Dict{String, Int64},alpha,figsize,fontsize,title::String,xlabel::String,legend=:outerright,yaxis=:linear)
   
     p = plot(size=figsize,legend=legend,title=title,xlabel=xlabel,yaxis=yaxis,
         xtickfont=font(fontsize), 
@@ -9,8 +27,8 @@ function plottraces(stats,labels,colors,markers,interval,alpha,figsize,fontsize,
     for (stat,label) in zip(stats,labels)
         plot!(p,[trace for trace in stat],alpha=alpha,color=colors[label],label="")
         plot!(p,1:interval[label]:length(mean(stat)),mean(stat)[1:interval[label]:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
+        # plot!(p,1:interval:length(mean(stat)),mean(stat)[1:interval:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
     end
-    
     
     return p
 end
