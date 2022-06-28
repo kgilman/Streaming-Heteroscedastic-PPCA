@@ -1,4 +1,5 @@
-function SHASTA_PCA2(M,Y,ΩY,groups,w,wf,wᵥ,δ,Fmeasure,stats_fcn,online=false,buffer=1)
+function SHASTA_PCA2(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,groups::Vector{Int64},learnRateParams,
+                    δ::Float64,Fmeasure::Function,stats_fcn::Function,online=false,buffer=1)
     d,k = size(M.F)
     n = size(Y)[2]
     L = length(M.v)
@@ -11,24 +12,30 @@ function SHASTA_PCA2(M,Y,ΩY,groups,w,wf,wᵥ,δ,Fmeasure,stats_fcn,online=false
 
     
     Yrec = deepcopy(Y)
-#     data_idx = randperm(n)
     stats_log = [stats_fcn(M)]
     err_log = [Fmeasure(M)]
     time_log = [0.]
     tlast = 0
+
+    w0 = learnRateParams.w
+    cf = learnRateParams.cf
+    cv = learnRateParams.cv
+
+
     for t = 1:n
 
         yₜ = Y[:,t]
         l = groups[t]
         Ωₜ = ΩY[:,t]
         telapsed = @elapsed begin
-        if(online)
-            M, R, s, θ, α, β, yₜʳ = streamSHASTA2!(M,yₜ,Ωₜ,l,w,wf,wᵥ, R, s, θ, α, β)
-        else
-            M, R, s, θ, α, β, yₜʳ = streamSHASTA2!(M,yₜ,Ωₜ,l,w/t,wf,wᵥ, R, s, θ, α, β)
-        end
 
-            # M, R, s, θ, ρ, yₜʳ = streamSHASTA!(M,yₜ,Ωₜ,l,w,wf,wᵥ, R, s, θ, ρ)
+            if(!online)
+                w = w0/t
+            else
+                w = w0
+            end
+
+            M, R, s, θ, α, β, yₜʳ = streamSHASTA2!(M,yₜ,Ωₜ,l,w,cf,cv, R, s, θ, α, β)
         end
         Yrec[:,t] = yₜʳ
         tlast += telapsed
@@ -44,22 +51,16 @@ function SHASTA_PCA2(M,Y,ΩY,groups,w,wf,wᵥ,δ,Fmeasure,stats_fcn,online=false
     return M, Yrec, stats_log, err_log, time_log
 end
 
-function streamSHASTA2!(M,yₜ,Ωₜ,l,w,wf,wᵥ,R,s,θ,α,β)
-    M, R, s, yₜʳ = inc_updateF2!(M,yₜ,Ωₜ,l,w,wf,R,s)
-    M,θ,α,β = inc_updatevl2!(M,yₜ,Ωₜ,l,θ,α,β,R,s,w,wᵥ)
+function streamSHASTA2!(M::HePPCATModel,yₜ::Vector{Float64},Ωₜ::AbstractVector,l::Int64,w::Float64,cf::Float64,cv::Float64,
+                        R::Vector{Vector{Matrix{Float64}}},s::Vector{Vector{Vector{Float64}}},θ::Vector{Float64},α::Vector{Float64},β::Vector{Vector{Float64}})
+    M, R, s, yₜʳ = inc_updateF2!(M,yₜ,Ωₜ,l,w,cf,R,s)
+    M,θ,α,β = inc_updatevl2!(M,yₜ,Ωₜ,l,θ,α,β,R,s,w,cv)
     
     return M, R, s, θ, α, β, yₜʳ
 end
 
-# function streamSHASTA!(M,yₜ,Ωₜ,l,w,wf,wᵥ,R,s,θ,ρ)
 
-#     M, R, s, yₜʳ,Mtl,ztl = inc_updateF!(M,yₜ,Ωₜ,l,w,wf,R,s)
-#     M,p,θ = inc_updatevl!(M,yₜ,Ωₜ,l,θ,ρ,Mtl,ztl,w,wᵥ)
-    
-#     return M, R, s, θ, ρ, yₜʳ
-# end
-
-function inc_updateF2!(M,yₜ,Ωₜ,groupIdx,w,wf,R,s)
+function inc_updateF2!(M,yₜ,Ωₜ,groupIdx,w,cf,R,s)
     vℓ = M.v[groupIdx]
     Ωₜidx = findall(>(0), Ωₜ)
     L = length(M.v)
@@ -78,7 +79,7 @@ function inc_updateF2!(M,yₜ,Ωₜ,groupIdx,w,wf,R,s)
     
     Rv = sum([1/M.v[l].*R[l][Ωₜidx] for l=1:L])
     sv = sum([1/M.v[l].*s[l][Ωₜidx] for l=1:L])
-    F[Ωₜidx,:] = hcat(updatefmm2!.(eachrow(FΩₜ),yΩₜ,Rv,sv,Ref(wf))...)'
+    F[Ωₜidx,:] = hcat(updatefmm2!.(eachrow(FΩₜ),yΩₜ,Rv,sv,Ref(w),Ref(cf))...)'
     Fhat = svd(F)
     
     M.U .= Fhat.U
@@ -92,7 +93,7 @@ function inc_updateF2!(M,yₜ,Ωₜ,groupIdx,w,wf,R,s)
     
 end
 
-function inc_updatevl2!(M,yₜ,Ωₜ,groupIdx,θ,α,β,R,s,w,wᵥ)
+function inc_updatevl2!(M,yₜ,Ωₜ,groupIdx,θ,α,β,R,s,w,cf)
 
     L = length(M.v)
     F = copy(M.F)
@@ -118,7 +119,7 @@ function inc_updatevl2!(M,yₜ,Ωₜ,groupIdx,θ,α,β,R,s,w,wᵥ)
             # ρtl = α[l] - sum(computevparam2.(eachrow(F),R[l],s[l])) ###full version
 
             vtl = ρtl / θ[l]
-            M.v[l] = (1-wᵥ)*vℓ + wᵥ*vtl
+            M.v[l] = (1-cf)*vℓ + cf*vtl
         else
             θ[l] = (1-w)*θ[l] 
             α[l] = (1-w)*α[l] 
@@ -130,14 +131,6 @@ function inc_updatevl2!(M,yₜ,Ωₜ,groupIdx,θ,α,β,R,s,w,wᵥ)
     
 end
 
-nonnegative(x) = max(zero(x),x)
-
-# function updatefparams2!(yₜi,Ωₜi,Ri,si,w,Rₜ,ztl,vℓ,Ωl)
-#     Ri .= (1-w)*Ri + w*(Ωₜi*Ωl/vℓ * Rₜ)
-#     si .= (1-w)*si + w*(Ωₜi*Ωl/vℓ * yₜi) * ztl
-    
-#     return Ri,si
-# end
 
 function updatevparams2!(yₜi,Ωₜi,Rli,sli,w,Rₜ,ztl,Ωl)
     Rli .= (1-w)*Rli + w*(Ωₜi*Ωl * Rₜ)
@@ -148,17 +141,13 @@ end
 
 function computevparam2(fi,Rli,sli)
     return 2*fi'*sli - fi'*(Rli*fi)
+    # return fi'*sli - 0.5*fi'*(Rli*fi)
 end
 
-# function updatefmm!(fi,yₜi,Ωₜi,Ri,si,w,Rₜ,ztl,vℓ)
-function updatefmm2!(fi,yₜi,Ri,si,w)
-    
-#     Ri .= (1-w)*Ri + w*(Ωₜi * Rₜ)
-#     si .= (1-w)*si + w*(Ωₜi/vℓ * yₜi) * ztl
-    
+function updatefmm2!(fi,yₜi,Ri,si,w,cf)
 
     fₜi = inv(Ri)*si
-    fi .= (1-w)*fi + w*fₜi
+    fi .= (1-cf)*fi + cf*fₜi
 
     
     return fi
