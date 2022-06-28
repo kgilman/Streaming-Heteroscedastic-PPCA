@@ -1,4 +1,5 @@
-function batchHPPCACompletion(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,niters::Int64,Fmeasure::Function,stats_fcn::Function,buffer=1)
+# function batchHPPCACompletion(M::HePPCATModel,Y::Vector{Matrix{Float64}},ΩY::Vector{AbstractMatrix},niters::Int64,Fmeasure::Function,stats_fcn::Function,buffer=1)
+function batchHPPCACompletion(M::HePPCATModel,Y::Vector{Matrix{Float64}},ΩY,niters::Int64,Fmeasure::Function,stats_fcn::Function,buffer=1)
 
 
 	stats_log = []
@@ -112,6 +113,7 @@ function updatev!(M,Y,Ωidx,Mt,zt,θ,α)
 			# θl += length(Ωli)
 			# αl += norm(yΩ)^2
 			ρtl += 2*yΩ'*(FΩ*ztli) - (norm(FΩ*ztli)^2 + v[l]*tr((FΩ'*FΩ)*Mt[l][i]))
+			# ρtl += yΩ'*(FΩ*ztli) - 0.5*(norm(FΩ*ztli)^2 + v[l]*tr((FΩ'*FΩ)*Mt[l][i]))
 
 		end
 
