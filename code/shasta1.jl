@@ -144,7 +144,8 @@ end
 
 function updatefmm1!(fi,yₜi,Ri,si,w,cf)
 
-    fₜi = inv(Ri)*si
+    # fₜi = inv(Ri)*si
+    fₜi = Ri \ si
     fi .= (1-cf)*fi + cf*fₜi
 
     

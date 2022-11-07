@@ -1,5 +1,5 @@
 
-function PETRELS(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,λ::Float64,δ::Float64)
+function PETRELS(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,λ::Float64,δ::Float64,Fmeasure::Function,stats_fcn::Function)
     d,k = size(M.F)
     n = size(Y)[2]
     Rₜ⁺ = [δ*Matrix(I(k)) for i=1:d]
