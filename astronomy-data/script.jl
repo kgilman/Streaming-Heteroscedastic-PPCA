@@ -7,6 +7,6 @@ LOCALPATH = basename(URL)
 ispath(LOCALPATH) || download(URL, LOCALPATH)
 
 # Load the data
-# Y: data matrix (281 features x 10459 samples)
-# v: variance vector (one variance per sample, averaged across features)
-Y, v = BSON.load(LOCALPATH)[:ans]
+# Yfull: data matrix (281 features x 10459 samples)
+# vfull: variance vector (one variance per sample, averaged across features)
+Yfull, vfull = BSON.load(LOCALPATH)[:ans]
