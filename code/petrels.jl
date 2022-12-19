@@ -1,5 +1,5 @@
 
-function PETRELS(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,λ::Float64,δ::Float64,Fmeasure::Function,stats_fcn::Function)
+function PETRELS(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,λ::Float64,δ::Float64,Fmeasure::Function,stats_fcn::Function,buffer=1)
     d,k = size(M.F)
     n = size(Y)[2]
     Rₜ⁺ = [δ*Matrix(I(k)) for i=1:d]
@@ -7,7 +7,9 @@ function PETRELS(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,λ::Floa
     data_idx = randperm(n)
     stats_log = [stats_fcn(M)]
     err_log = [Fmeasure(M)]
-    time_log = []
+    time_log = [0.]
+
+    tlast = 0
     for t = 1:n
 #         j = data_idx[t]
         yₜ = Y[:,t]
@@ -16,9 +18,14 @@ function PETRELS(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,λ::Floa
         M,Rₜ⁺,yₜʳ = streamPETRELS!(M,yₜ,Ωₜ,Rₜ⁺,λ)
         end
         Yrec[:,t] = yₜʳ
-        push!(stats_log,stats_fcn(M))
-        push!(err_log, Fmeasure(M))
-        push!(time_log,telapsed)
+
+        tlast += telapsed
+        if(mod(t,buffer)==0)
+            push!(stats_log,stats_fcn(M))
+            push!(err_log, Fmeasure(M))
+            push!(time_log,tlast)
+            tlast = 0
+        end
     end
     return M, Yrec, stats_log, err_log, time_log
 end
