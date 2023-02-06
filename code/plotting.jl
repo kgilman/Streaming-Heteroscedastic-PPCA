@@ -7,7 +7,7 @@ function plottraces(stats,labels,colors,markers,interval::Int64,alpha,figsize,fo
         legendfont=font(fontsize),
         titlefont=font(fontsize))
     for (stat,label) in zip(stats,labels)
-        plot!(p,[trace for trace in stat],alpha=alpha,color=colors[label],label="")
+        plot!(p,[(1:interval:length(trace),trace[1:interval:length(trace)]) for trace in stat],alpha=alpha,color=colors[label],label="")
         # plot!(p,1:interval[label]:length(mean(stat)),mean(stat)[1:interval[label]:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
         plot!(p,1:interval:length(mean(stat)),mean(stat)[1:interval:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
     end
@@ -25,7 +25,7 @@ function plottraces(stats,labels,colors,markers,interval::Dict{String, Int64},al
         legendfont=font(fontsize),
         titlefont=font(fontsize))
     for (stat,label) in zip(stats,labels)
-        plot!(p,[trace for trace in stat],alpha=alpha,color=colors[label],label="")
+        plot!(p,[(1:interval[label]:length(trace),trace[1:interval[label]:length(trace)]) for trace in stat],alpha=alpha,color=colors[label],label="")
         plot!(p,1:interval[label]:length(mean(stat)),mean(stat)[1:interval[label]:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
         # plot!(p,1:interval:length(mean(stat)),mean(stat)[1:interval:length(mean(stat))],color=colors[label],linestyle=:dash,markershape=markers[label],width=2,label=label)
     end

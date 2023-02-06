@@ -15,10 +15,14 @@ function SHASTA_PCA2(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,grou
     err_log = [Fmeasure(M)]
     time_log = [0.]
     tlast = 0
+    var_log = [deepcopy(M.v)]
 
     w0 = learnRateParams.w
     cf = learnRateParams.cf
     cv = learnRateParams.cv
+
+    fval = updateLogLikelihood!(0,M,Y[:,1],ΩY[:,1],groups[1],1)
+    # stats_log = [fval]
 
     for t = 1:n
         yₜ = Y[:,t]
@@ -26,16 +30,20 @@ function SHASTA_PCA2(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,grou
         Ωₜ = ΩY[:,t]
         telapsed = @elapsed begin
 
-            if(!online)
-                w = w0/t
-            else
-                w = w0
-            end
+
+            w = if(!online) w0/t else w0 end
+            # if(!online)
+            #     w = w0/t
+            # else
+            #     w = w0
+            # end
              # M, R, s, ρ, θ, yₜʳ = streamSHASTA2!(M,yₜ,Ωₜ,l,w,cf,cv,R,s,ρ,θ)
             streamSHASTA2!(M,yₜ,Ωₜ,l,w,cf,cv,R,s,ρ,θ)
-            
+            fval = updateLogLikelihood!(fval,M,yₜ,Ωₜ,l,w)
+            # push!(stats_log,copy(fval))
         end
         # Yrec[:,t] = yₜʳ
+        push!(var_log, deepcopy(M.v))
 
         tlast += telapsed
         if(mod(t,buffer)==0)
@@ -45,7 +53,7 @@ function SHASTA_PCA2(M::HePPCATModel,Y::Matrix{Float64},ΩY::AbstractMatrix,grou
             tlast = 0
         end
     end
-    return M, Yrec, stats_log, err_log, time_log
+    return M, Yrec, stats_log, err_log, time_log, var_log
 end
 
 function streamSHASTA2!(M::HePPCATModel,yₜ::Vector{Float64},Ωₜ::AbstractVector,l::Int64,w::Float64,cf::Float64,cv::Float64,
@@ -147,4 +155,20 @@ function updatefmm2!(fi,yₜi,Ri,si,w,cf)
     fi .= (1-cf)*fi + cf*fₜi
     
     return fi
+end
+
+function updateLogLikelihood!(fval,M,yₜi,Ωₜ,l,w)
+
+    idx = findall(>(0), Ωₜ)
+    yΩ = yₜi[idx]
+    FΩ = M.F[idx,:]
+    FΩsvd = svd(FΩ)
+    value = norm(sqrt(Diagonal((FΩsvd.S./M.v[l])./(FΩsvd.S .+ M.v[l])))*FΩsvd.U'*yΩ)^2 -
+                sum(log.(FΩsvd.S .+ M.v[l])) - (length(idx)-k)*log(M.v[l]) - norm(yΩ)^2/M.v[l]
+
+    fval = (1-w)*fval + w/2*value
+
+    # println(fval)
+
+    return fval
 end
